@@ -10,7 +10,7 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
     }
     body {
-      background-color: #271b05;
+      background-color: #f4f5f7;
       color: #333;
       margin: 0;
       padding: 40px 16px;
@@ -19,7 +19,7 @@
     }
     .container {
       width: 100%;
-      max-width: 680px;
+      max-width: 720px;
       background: #ffffff;
       padding: 32px;
       border: 1px solid #dcdfe4;
@@ -111,6 +111,34 @@
     .download-btn:hover {
       text-decoration: underline;
     }
+    .visualization-section {
+      margin-top: 36px;
+      border-top: 1px solid #ebecf0;
+      padding-top: 24px;
+    }
+    .visualization-section h2 {
+      font-size: 15px;
+      margin: 0 0 6px 0;
+      color: #172b4d;
+    }
+    .visualization-section p {
+      font-size: 13px;
+      color: #5e6c84;
+      margin-top: 0;
+      margin-bottom: 14px;
+    }
+    .vis-frame {
+      width: 100%;
+      border: 1px solid #dcdfe4;
+      border-radius: 4px;
+      overflow: hidden;
+      background: #000;
+    }
+    .vis-frame img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -154,6 +182,15 @@
       </div>
     </div>
   </div>
+
+  <!-- Conceptual Architecture Visualization Section -->
+  <div class="visualization-section">
+    <h2 id="visTitle">System State: Mixed Input Channels</h2>
+    <p id="visDesc">Before separation: Microphones capture blended acoustic signals containing both speakers.</p>
+    <div class="vis-frame">
+      <img id="visImage" src="{{ url_for('static', filename='input_mix.png') }}" alt="Audio setup representation">
+    </div>
+  </div>
 </div>
 
 <script>
@@ -162,12 +199,19 @@
   const statusDiv = document.getElementById('status');
   const resultsDiv = document.getElementById('results');
 
+  const visTitle = document.getElementById('visTitle');
+  const visDesc = document.getElementById('visDesc');
+  const visImage = document.getElementById('visImage');
+
+  // Pre-define the output image URL so it swaps seamlessly
+  const outputImageUrl = "{{ url_for('static', filename='output_separated.png') }}";
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const formData = new FormData(form);
     submitBtn.disabled = true;
-    statusDiv.textContent = 'Processing separation... Please wait.';
+    statusDiv.textContent = 'Processing FastICA separation... Please wait.';
     resultsDiv.style.display = 'none';
 
     try {
@@ -182,7 +226,7 @@
         throw new Error(data.error || 'Separation failed.');
       }
 
-      // Attach audio data URIs to players and download anchors
+      // Populate audio tracks and download links
       const player1 = document.getElementById('player1');
       const download1 = document.getElementById('download1');
       player1.src = data.speaker1;
@@ -192,6 +236,11 @@
       const download2 = document.getElementById('download2');
       player2.src = data.speaker2;
       download2.href = data.speaker2;
+
+      // Update visualization to Output state
+      visTitle.textContent = "System State: Separated Independent Components";
+      visDesc.textContent = "After separation: Independent Component Analysis isolates each acoustic source into distinct tracks.";
+      visImage.src = outputImageUrl;
 
       statusDiv.textContent = 'Separation complete.';
       resultsDiv.style.display = 'block';
