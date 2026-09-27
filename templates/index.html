@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio Source Separation Tool</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+    body {
+      background-color: #f4f5f7;
+      color: #333;
+      margin: 0;
+      padding: 40px 16px;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      width: 100%;
+      max-width: 680px;
+      background: #ffffff;
+      padding: 32px;
+      border: 1px solid #dcdfe4;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    h1 {
+      font-size: 20px;
+      margin: 0 0 8px 0;
+      color: #172b4d;
+    }
+    p.subtitle {
+      font-size: 14px;
+      color: #5e6c84;
+      margin-top: 0;
+      margin-bottom: 24px;
+    }
+    .field-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #344563;
+    }
+    input[type="file"] {
+      display: block;
+      width: 100%;
+      font-size: 14px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #fafbfc;
+    }
+    button {
+      background-color: #0052cc;
+      color: #ffffff;
+      border: none;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0047b3;
+    }
+    button:disabled {
+      background-color: #a5b2c6;
+      cursor: not-allowed;
+    }
+    #status {
+      margin-top: 16px;
+      font-size: 13px;
+      color: #5e6c84;
+    }
+    .results {
+      margin-top: 32px;
+      border-top: 1px solid #ebecf0;
+      padding-top: 24px;
+      display: none;
+    }
+    .audio-card {
+      background: #fafbfc;
+      border: 1px solid #e1e4e8;
+      border-radius: 4px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .audio-card h3 {
+      margin: 0 0 10px 0;
+      font-size: 14px;
+      color: #172b4d;
+    }
+    audio {
+      width: 100%;
+      height: 36px;
+      margin-bottom: 10px;
+    }
+    .download-btn {
+      display: inline-block;
+      font-size: 13px;
+      color: #0052cc;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .download-btn:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Audio Source Separation</h1>
+  <p class="subtitle">Upload two mixed WAV recordings to run FastICA decomposition and extract the separated tracks.</p>
+
+  <form id="separationForm">
+    <div class="field-group">
+      <label for="mix1">Mix File 1 (.wav)</label>
+      <input type="file" id="mix1" name="mix1" accept=".wav" required>
+    </div>
+
+    <div class="field-group">
+      <label for="mix2">Mix File 2 (.wav)</label>
+      <input type="file" id="mix2" name="mix2" accept=".wav" required>
+    </div>
+
+    <button type="submit" id="submitBtn">Process Audio</button>
+  </form>
+
+  <div id="status"></div>
+
+  <div class="results" id="results">
+    <h2 style="font-size: 16px; margin-bottom: 16px;">Separation Results</h2>
+
+    <div class="audio-card">
+      <h3>Separated Track 1 (Speaker 1)</h3>
+      <audio id="player1" controls></audio>
+      <div>
+        <a id="download1" class="download-btn" download="speaker1.wav">Download speaker1.wav</a>
+      </div>
+    </div>
+
+    <div class="audio-card">
+      <h3>Separated Track 2 (Speaker 2)</h3>
+      <audio id="player2" controls></audio>
+      <div>
+        <a id="download2" class="download-btn" download="speaker2.wav">Download speaker2.wav</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const form = document.getElementById('separationForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const statusDiv = document.getElementById('status');
+  const resultsDiv = document.getElementById('results');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(form);
+    submitBtn.disabled = true;
+    statusDiv.textContent = 'Processing separation... Please wait.';
+    resultsDiv.style.display = 'none';
+
+    try {
+      const response = await fetch('/separate', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Separation failed.');
+      }
+
+      // Attach audio data URIs to players and download anchors
+      const player1 = document.getElementById('player1');
+      const download1 = document.getElementById('download1');
+      player1.src = data.speaker1;
+      download1.href = data.speaker1;
+
+      const player2 = document.getElementById('player2');
+      const download2 = document.getElementById('download2');
+      player2.src = data.speaker2;
+      download2.href = data.speaker2;
+
+      statusDiv.textContent = 'Separation complete.';
+      resultsDiv.style.display = 'block';
+    } catch (err) {
+      statusDiv.textContent = 'Error: ' + err.message;
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+</script>
+
+</body>
+</html>
