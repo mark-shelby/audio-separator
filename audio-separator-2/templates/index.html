@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overdetermined Audio Separator</title>
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --bg: #0F172A;
+            --panel: #1E293B;
+            --text: #F8FAFC;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background: var(--panel);
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 500px;
+        }
+        h1 { margin-top: 0; font-size: 1.5rem; text-align: center; margin-bottom: 2rem; }
+        .form-group { margin-bottom: 1.5rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.95rem; }
+        input[type="file"], input[type="number"] {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            background: #0F172A;
+            color: white;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 0.85rem;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover { background-color: #4338CA; }
+        button:disabled { background-color: #475569; cursor: not-allowed; }
+        
+        .loader-container {
+            display: none;
+            text-align: center;
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: #334155;
+            border-radius: 8px;
+        }
+        
+        #results { margin-top: 2rem; }
+        .audio-card {
+            background: #334155;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--primary);
+        }
+        audio { width: 100%; margin-top: 0.75rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Overdetermined Source Separator</h1>
+        <form id="uploadForm">
+            <div class="form-group">
+                <label for="files">Upload Microphones (WAV format, n+1 mics):</label>
+                <input type="file" id="files" name="files[]" multiple accept=".wav" required>
+            </div>
+            <div class="form-group">
+                <label for="n_speakers">Number of Target Speakers (n):</label>
+                <input type="number" id="n_speakers" name="n_speakers" min="1" value="2" required>
+            </div>
+            <button type="submit" id="submitBtn">Extract Speaker Audio</button>
+        </form>
+        
+        <div class="loader-container" id="loader">
+            Running PCA & FastICA...<br><small>This may take a moment for large files.</small>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const form = e.target;
+            const formData = new FormData(form);
+            const submitBtn = document.getElementById('submitBtn');
+            const loader = document.getElementById('loader');
+            const results = document.getElementById('results');
+            
+            submitBtn.disabled = true;
+            loader.style.display = 'block';
+            results.innerHTML = '';
+            
+            try {
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    data.files.forEach((file, index) => {
+                        const card = document.createElement('div');
+                        card.className = 'audio-card';
+                        card.innerHTML = `
+                            <label>Isolated Speaker ${index + 1}</label>
+                            <audio controls src="/download/${file}"></audio>
+                        `;
+                        results.appendChild(card);
+                    });
+                } else {
+                    alert(data.error || 'An error occurred during processing.');
+                }
+            } catch (error) {
+                alert('Connection error. Is the Flask server running?');
+            } finally {
+                submitBtn.disabled = false;
+                loader.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
