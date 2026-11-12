@@ -24,7 +24,7 @@ def fast_ica_separate(file1_stream, file2_stream):
     Z = (eigenvectors @ D_inv_sqrt @ eigenvectors.T @ X.T).T
 
     # FastICA decomposition
-    W = np.zeros((X.length()))
+    W = np.zeros((X.length(),x.length()))
     for i in range(2):
         w = np.random.rand(X.length())
         for _ in range(1000):
