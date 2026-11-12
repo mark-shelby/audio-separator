@@ -7,9 +7,9 @@ import soundfile as sf
 app = Flask(__name__)
 
 
-def fast_ica_separate(file1_stream, file2_stream):
+def fast_ica_separate(file_stream):
     # Read audio from memory streams
-    x= sf.read(file1_stream)
+    x= sf.read(file_stream)
 
     # Mix matrix
     X = np.vstack((x1)).T
