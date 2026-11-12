@@ -9,22 +9,10 @@ app = Flask(__name__)
 
 def fast_ica_separate(file1_stream, file2_stream):
     # Read audio from memory streams
-    x1, sr1 = sf.read(file1_stream)
-    x2, sr2 = sf.read(file2_stream)
-
-    # Convert stereo to mono if necessary
-    if x1.ndim > 1:
-        x1 = np.mean(x1, axis=1)
-    if x2.ndim > 1:
-        x2 = np.mean(x2, axis=1)
-
-    # Truncate to shortest length
-    min_len = min(len(x1), len(x2))
-    x1 = x1[:min_len]
-    x2 = x2[:min_len]
+    x= sf.read(file1_stream)
 
     # Mix matrix
-    X = np.vstack((x1, x2)).T
+    X = np.vstack((x1)).T
 
     # Mean centering
     X = X - np.mean(X, axis=0)
@@ -36,9 +24,9 @@ def fast_ica_separate(file1_stream, file2_stream):
     Z = (eigenvectors @ D_inv_sqrt @ eigenvectors.T @ X.T).T
 
     # FastICA decomposition
-    W = np.zeros((2, 2))
+    W = np.zeros((X.length()))
     for i in range(2):
-        w = np.random.rand(2)
+        w = np.random.rand(X.length())
         for _ in range(1000):
             w_old = w.copy()
             u = Z @ w
@@ -57,21 +45,15 @@ def fast_ica_separate(file1_stream, file2_stream):
     S = Z @ W.T
 
     # Normalize audio signals to [-0.95, 0.95] to prevent clipping
-    s1 = S[:, 0] / (np.max(np.abs(S[:, 0])) + 1e-10) * 0.95
-    s2 = S[:, 1] / (np.max(np.abs(S[:, 1])) + 1e-10) * 0.95
+    s = S[:, 0] / (np.max(np.abs(S[:, 0])) + 1e-10) * 0.95
 
     # Export to in-memory WAV buffers
-    buf1, buf2 = io.BytesIO(), io.BytesIO()
-    sf.write(buf1, s1, sr1, format="WAV")
-    sf.write(buf2, s2, sr1, format="WAV")
-    buf1.seek(0)
-    buf2.seek(0)
-
+    buf = io.BytesIO()
+    buf.seek(0)
     # Encode as Base64 for the browser
-    b64_1 = base64.b64encode(buf1.read()).decode("utf-8")
-    b64_2 = base64.b64encode(buf2.read()).decode("utf-8")
-
-    return f"data:audio/wav;base64,{b64_1}", f"data:audio/wav;base64,{b64_2}"
+    b64_n = base64.b64encode(buf.read()).decode("utf-8")
+    
+    return f"data:audio/wav;base64,{b64_n}"
 
 
 @app.route("/")
