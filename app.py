@@ -63,18 +63,18 @@ def index():
 
 @app.route("/separate", methods=["POST"])
 def separate():
-    if "mix1" not in request.files or "mix2" not in request.files:
+    if "mix" not in request.files or "mix2" not in request.files:
         return jsonify({"error": "Both audio files are required."}), 400
 
-    file1 = request.files["mix1"]
-    file2 = request.files["mix2"]
+    file = request.files["mix"]
+    
 
-    if file1.filename == "" or file2.filename == "":
+    if file.filename == "" :
         return jsonify({"error": "No file selected."}), 400
 
     try:
-        audio1_uri, audio2_uri = fast_ica_separate(file1.stream, file2.stream)
-        return jsonify({"speaker1": audio1_uri, "speaker2": audio2_uri})
+        audio1_uri = fast_ica_separate(file.stream)
+        return jsonify({"speaker": audio_uri})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
